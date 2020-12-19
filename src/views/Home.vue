@@ -56,10 +56,10 @@
       </p>
       <el-form label-width="120px">
         <el-form-item label="DIP主网映射地址">
-          <el-input v-model="mapAddress"></el-input>
+          <el-input v-model="mapAddress" placeholder="请输入您的Dip主网地址"></el-input>
         </el-form-item>
         <el-form-item label="映射数量">
-          <el-input v-model="amount">
+          <el-input v-model="amount_imput" placeholder="最大数量不能超过ERC20的DIP持有数量">
             <template slot="append">Dip</template>
           </el-input>
         </el-form-item>
@@ -69,8 +69,12 @@
     <p>
       <el-button
         type="primary"
-        @click="toSend"
-      >Send</el-button>
+        @click="toApprove"
+      >Approve</el-button>
+      <el-button
+        type="primary"
+        @click="toMapping"
+      >Mapping</el-button>
     </p>
   </div>
 </template>
@@ -99,7 +103,8 @@ export default {
       accountResults: "", // 我的账户
       mapAddress: "",
       amount: "",
-      amount1:""
+      amount1:"",
+      amount_imput:""
     };
   },
   computed: {},
@@ -204,7 +209,12 @@ export default {
       // console.log(amount1)
       // 返回的amount单位是Wei，1Ether = 10^18Wei
       if (amount) this.amount = (parseInt(amount) / Math.pow(10, 18)).toFixed(4);
-      if (amount1) this.amount1 = (amount1 / Math.pow(10, 12)).toFixed(12);
+      if (amount1) 
+      {
+        this.amount1 = (amount1 / Math.pow(10, 12)).toFixed(12);
+        this.amount_imput = this.amount1;
+      }
+
       // console.log(this.amount)
       // console.log(this.amount1)
     },
@@ -232,7 +242,7 @@ export default {
     // 安装
     connectInstall() {
       this.connectButton = "Onboarding in progress";
-      this.button.connectDisabled = true;
+      this.buttonDisabled.connectDisabled = true;
       //On this object we have startOnboarding which will start the onboarding process for our end user
       this.onboarding.startOnboarding();
     },
@@ -283,15 +293,75 @@ export default {
           console.log(error);
         });
     },
-    // 发送交易
-    toSend() {
+    // 发送交易 approve
+    toApprove() {
+      let approve = '0x095ea7b3000000000000000000000000';
+      let lockToken = "0xa44ce259000000000000000000000000";
+      let approve_data = '0x095ea7b3';
+      let amount = this.amount_imput;
+      let c_amount = (amount * Math.pow(10, 12)).toString(16);
+      let size = 64 ;
+      c_amount = (Array(size).join('0') + c_amount).slice(-size);
+      let address = (Array(size).join('0') + 'D14f2f1e32e2Dd4C17DFA27f1393815674e2adA2').slice(-size);
+      let req_data = approve_data + address + c_amount
+      console.log(approve_data)
+      console.log(this.accountResults[0])
+      console.log(c_amount)
+      console.log(req_data)
+
       this.ethRequest("eth_sendTransaction", [
         {
           from: this.accountResults[0],
-          to: this.distAccount,
-          value: "",
-          gasPrice: "",
-          gas: ""
+          to: '0x97af10D3fc7C70F67711Bf715d8397C6Da79C1Ab',
+          gas: "0x0", 
+          value:'0x0',
+          gasPrice: "0x0",
+          data:req_data       
+        }
+      ]).then(txHash => {
+        console.log(txHash);
+      });
+    },
+
+    // 映射
+    toMapping() {
+      let size = 64;
+      let amount = this.amount_imput;
+      if(this.mapAddress == '')
+      {
+        alert("请确保主网映射地址正确")
+        return
+      }
+
+      let c_amount = (amount * Math.pow(10, 12)).toString(16);
+      c_amount = (Array(size).join('0') + c_amount).slice(-size);
+      var strArray = this.mapAddress.split("");
+      var add_str = ""
+      console.info(strArray)
+      for(let index in strArray)
+      {
+        let code = strArray[index].charCodeAt().toString(16)
+        // console.info(code)
+        add_str+=code
+
+      }
+
+      console.info()
+      let c_address = (add_str + Array(129 - strArray.length * 2).join('0'))
+      let dip_main = '000000000000000000000000000000000000000000000000000000000000002a';
+      let dip_lock_function = '0xa44ce2590000000000000000000000000000000000000000000000000000000000000040';
+      console.info(c_address)
+      console.info(c_amount)
+      let dip_data = dip_lock_function + c_amount + dip_main + c_address
+      console.info(dip_data)
+      this.ethRequest("eth_sendTransaction", [
+        {
+          from: this.accountResults[0],
+          to: '0xD14f2f1e32e2Dd4C17DFA27f1393815674e2adA2',
+          gas: "0x0", 
+          value:'0x0',
+          gasPrice: "0x0",
+          data:dip_data       
         }
       ]).then(txHash => {
         console.log(txHash);
