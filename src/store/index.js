@@ -5,8 +5,12 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
+    baseLang: ""
   },
   mutations: {
+    SETLANG(state, r) {
+      state.baseLang = r;
+    }
   },
   actions: {
   },

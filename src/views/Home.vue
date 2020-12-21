@@ -1,15 +1,28 @@
 <template>
   <div class="home">
     <el-card class="box-card">
+      <div>{{$t('tips')}}</div>
+      <div>
+        <a href="https://docs.dippernetwork.com/mapping/mapping.html" target="_blank">{{$t('oppical_doc')}}</a>
+      </div>
       <div
         slot="header"
         class="clearfix"
       >
-        <span>Metamask 状态：{{connectStatus}}</span>
+        <span>{{$t('title')}}</span>
         <!-- <el-button
           style="float: right; padding: 3px 0"
           type="text"
         >操作按键</el-button> -->
+        <el-dropdown class="language" @command="changeLanguage">
+          <span class="el-dropdown-link">
+            {{$t('change')}}<i class="el-icon-arrow-down el-icon--right"></i>
+          </span>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item command="zh">中文</el-dropdown-item>
+            <el-dropdown-item command="en">English</el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
       </div>
       <p>
         <el-button
@@ -36,31 +49,37 @@
       </p> -->
       <p>
         <el-alert
-          :title="`我的账户：${accountResults}`"
+          :title="`${$t('account')}${accountResults}`"
           type="info"
           :closable="false"
           effect="dark"
         >
         </el-alert>
       </p>
-      <div>账户ETH数量:{{amount}}</div>
-      <div>账户DIP数量:{{amount1}}</div>
+      <div>{{$t('your_eth')}}{{amount}}</div>
+      <div>{{$t('you_dip')}}:{{amount1}}</div>
       <p>
         <el-alert
-          :title="`官方ERC20目标地址：${distAccount}`"
+          :title="`${$t('dip_main_erc20')}${distAccount}`"
           type="info"
           :closable="false"
           effect="dark"
         >
         </el-alert>
       </p>
-      <el-form label-width="120px">
-        <el-form-item label="DIP主网映射地址">
-          <el-input v-model="mapAddress" placeholder="请输入您的Dip主网地址"></el-input>
+      <el-form label-width="150px">
+        <el-form-item :label="$t('dip_main')">
+          <el-input
+            v-model="mapAddress"
+            :placeholder="$t('please_input')"
+          ></el-input>
         </el-form-item>
-        <el-form-item label="映射数量">
-          <el-input v-model="amount_imput" placeholder="最大数量不能超过ERC20的DIP持有数量">
-            <template slot="append">Dip</template>
+        <el-form-item :label="$t('mapping_amount')">
+          <el-input
+            v-model="amount_imput"
+            :placeholder="$t('max_tips')"
+          >
+            <template slot="append">DIP</template>
           </el-input>
         </el-form-item>
       </el-form>
@@ -70,17 +89,20 @@
       <el-button
         type="primary"
         @click="toApprove"
-      >Approve</el-button>
+        :disabled="btnStatus.b1disable"
+      >{{$t('approve')}}</el-button>
       <el-button
         type="primary"
         @click="toMapping"
-      >Mapping</el-button>
+        :disabled="btnStatus.b2disable"
+      >{{$t('mapping')}}</el-button>
     </p>
   </div>
 </template>
 
 <script>
 import MetaMaskOnboarding from "@metamask/onboarding";
+import { mapMutations } from 'vuex';
 
 export default {
   data() {
@@ -103,8 +125,9 @@ export default {
       accountResults: "", // 我的账户
       mapAddress: "",
       amount: "",
-      amount1:"",
-      amount_imput:""
+      amount1: "",
+      amount_imput: "",
+      btnStatus:{b1disable:true,b2disable:true}
     };
   },
   computed: {},
@@ -117,6 +140,9 @@ export default {
     window.addEventListener("DOMContentLoaded", this.initialize);
   },
   methods: {
+    ...mapMutations({
+      SETLANG: "SETLANG"
+    }),
     async initialize() {
       // 初始化按键状态
       this.updateButtons();
@@ -159,14 +185,15 @@ export default {
         this.connectType = "CONNECTED";
         this.connectStatus = "已连接";
         this.buttonDisabled.connectDisabled = true;
-        this.connectButton = "Connected";
+        this.connectButton = this.$t('connect_status');
         // 获取账户信息按键
         this.buttonDisabled.getAccountDisabled = false;
+        this.btnStatus.b1disable = false;
       } else {
         this.connectType = "CONNECT";
         this.connectStatus = "未连接";
         this.buttonDisabled.connectDisabled = false;
-        this.connectButton = "Connect";
+        this.connectButton = this.$t('connect_no');
       }
     },
     // 监听事件绑定
@@ -185,32 +212,35 @@ export default {
     },
     // 获取账户总金额
     async getAmountTotal() {
-      this.ethRequest("eth_getBlockByNumber", ['0xaecdde', true])
-        .then(result => {
-          console.log(result)
-        })
+      this.ethRequest("eth_getBlockByNumber", ["0xaecdde", true]).then(
+        result => {
+          console.log(result);
+        }
+      );
 
       let amount = await this.ethRequest("eth_getBalance", [
         this.accountResults[0],
-        'latest'
+        "latest"
       ]);
-// 0x1122b6a0e00dce0563082b6e2953f3a943855c1f   cenz
-// 0x97af10D3fc7C70F67711Bf715d8397C6Da79C1Ab   dip 
-      let param_from = this.accountResults[0]
-      let param_data = '0x70a08231000000000000000000000000' + param_from.slice(2)
+      // 0x1122b6a0e00dce0563082b6e2953f3a943855c1f   cenz
+      // 0x97af10D3fc7C70F67711Bf715d8397C6Da79C1Ab   dip
+      let param_from = this.accountResults[0];
+      let param_data =
+        "0x70a08231000000000000000000000000" + param_from.slice(2);
       let amount1 = await this.ethRequest("eth_call", [
         {
-            "from":param_from,
-            "to":'0x97af10D3fc7C70F67711Bf715d8397C6Da79C1Ab',
-            "data":param_data
-        },'latest'
+          from: param_from,
+          to: "0x97af10D3fc7C70F67711Bf715d8397C6Da79C1Ab",
+          data: param_data
+        },
+        "latest"
       ]);
       // console.log(amount)
       // console.log(amount1)
       // 返回的amount单位是Wei，1Ether = 10^18Wei
-      if (amount) this.amount = (parseInt(amount) / Math.pow(10, 18)).toFixed(4);
-      if (amount1) 
-      {
+      if (amount)
+        this.amount = (parseInt(amount) / Math.pow(10, 18)).toFixed(4);
+      if (amount1) {
         this.amount1 = (amount1 / Math.pow(10, 12)).toFixed(12);
         this.amount_imput = this.amount1;
       }
@@ -279,8 +309,8 @@ export default {
     },
     // api调用和错误处理
     ethRequest(method, params = {}) {
-      console.info('do job')
-      console.log(params)
+      console.info("do job");
+      console.log(params);
       return ethereum
         .request({
           method,
@@ -295,31 +325,35 @@ export default {
     },
     // 发送交易 approve
     toApprove() {
-      let approve = '0x095ea7b3000000000000000000000000';
+      let approve = "0x095ea7b3000000000000000000000000";
       let lockToken = "0xa44ce259000000000000000000000000";
-      let approve_data = '0x095ea7b3';
+      let approve_data = "0x095ea7b3";
       let amount = this.amount_imput;
       let c_amount = (amount * Math.pow(10, 12)).toString(16);
-      let size = 64 ;
-      c_amount = (Array(size).join('0') + c_amount).slice(-size);
-      let address = (Array(size).join('0') + 'D14f2f1e32e2Dd4C17DFA27f1393815674e2adA2').slice(-size);
-      let req_data = approve_data + address + c_amount
-      console.log(approve_data)
-      console.log(this.accountResults[0])
-      console.log(c_amount)
-      console.log(req_data)
+      let size = 64;
+      c_amount = (Array(size).join("0") + c_amount).slice(-size);
+      let address = (
+        Array(size).join("0") + "D14f2f1e32e2Dd4C17DFA27f1393815674e2adA2"
+      ).slice(-size);
+      let req_data = approve_data + address + c_amount;
+      console.log(approve_data);
+      console.log(this.accountResults[0]);
+      console.log(c_amount);
+      console.log(req_data);
 
       this.ethRequest("eth_sendTransaction", [
         {
           from: this.accountResults[0],
-          to: '0x97af10D3fc7C70F67711Bf715d8397C6Da79C1Ab',
-          gas: "0x0", 
-          value:'0x0',
+          to: "0x97af10D3fc7C70F67711Bf715d8397C6Da79C1Ab",
+          gas: "0x0",
+          value: "0x0",
           gasPrice: "0x0",
-          data:req_data       
+          data: req_data
         }
       ]).then(txHash => {
         console.log(txHash);
+        this.btnStatus.b1disable = true;
+        this.btnStatus.b2disable = false;
       });
     },
 
@@ -327,43 +361,44 @@ export default {
     toMapping() {
       let size = 64;
       let amount = this.amount_imput;
-      if(this.mapAddress == '')
-      {
-        alert("请确保主网映射地址正确")
-        return
+      if (this.mapAddress == "") {
+        alert("请确保主网映射地址正确");
+        return;
       }
 
       let c_amount = (amount * Math.pow(10, 12)).toString(16);
-      c_amount = (Array(size).join('0') + c_amount).slice(-size);
+      c_amount = (Array(size).join("0") + c_amount).slice(-size);
       var strArray = this.mapAddress.split("");
-      var add_str = ""
-      console.info(strArray)
-      for(let index in strArray)
-      {
-        let code = strArray[index].charCodeAt().toString(16)
+      var add_str = "";
+      console.info(strArray);
+      for (let index in strArray) {
+        let code = strArray[index].charCodeAt().toString(16);
         // console.info(code)
-        add_str+=code
-
+        add_str += code;
       }
 
-      console.info()
-      let c_address = (add_str + Array(129 - strArray.length * 2).join('0'))
-      let dip_main = '000000000000000000000000000000000000000000000000000000000000002a';
-      let dip_lock_function = '0xa44ce2590000000000000000000000000000000000000000000000000000000000000040';
-      console.info(c_address)
-      console.info(c_amount)
-      let dip_data = dip_lock_function + c_amount + dip_main + c_address
-      console.info(dip_data)
+      console.info();
+      let c_address = add_str + Array(129 - strArray.length * 2).join("0");
+      let dip_main =
+        "000000000000000000000000000000000000000000000000000000000000002a";
+      let dip_lock_function =
+        "0xa44ce2590000000000000000000000000000000000000000000000000000000000000040";
+      console.info(c_address);
+      console.info(c_amount);
+      let dip_data = dip_lock_function + c_amount + dip_main + c_address;
+      console.info(dip_data);
       this.ethRequest("eth_sendTransaction", [
         {
           from: this.accountResults[0],
-          to: '0xD14f2f1e32e2Dd4C17DFA27f1393815674e2adA2',
-          gas: "0x0", 
-          value:'0x0',
+          to: "0xD14f2f1e32e2Dd4C17DFA27f1393815674e2adA2",
+          gas: "0x0",
+          value: "0x0",
           gasPrice: "0x0",
-          data:dip_data       
+          data: dip_data
         }
       ]).then(txHash => {
+         
+          this.btnStatus.b2disable = true;
         console.log(txHash);
       });
     },
@@ -372,6 +407,11 @@ export default {
       return ethereum.request({ method: "eth_accounts" }).then(accounts => {
         this.handleNewAccounts(accounts);
       });
+    },
+    changeLanguage(e) {
+      this.$i18n.locale = e;
+      localStorage.setItem("lang", e);
+      this.SETLANG(e);
     }
   }
 };
@@ -388,6 +428,16 @@ export default {
     width: 600px;
     .card-button {
       width: 100%;
+    }
+    .clearfix {
+      position: relative;
+      width: 100%;
+      .language {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translate(0, -50%)
+      }
     }
   }
 }

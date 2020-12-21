@@ -4,6 +4,22 @@
   </div>
 </template>
 
+<script>
+import { mapMutations } from 'vuex';
+export default {
+  created() {
+    let defaultLang = localStorage.getItem("lang") || navigator.language.split("-")[0];
+    this.$i18n.locale = defaultLang.toLocaleLowerCase();
+    this.SETLANG(defaultLang.toLocaleLowerCase());
+  },
+  methods: {
+    ...mapMutations({
+      SETLANG: "SETLANG"
+    })
+  }
+}
+</script>
+
 <style lang="less">
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
